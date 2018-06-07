@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="Author" content="Fly">
+    <title>Title</title>
+    <style>
+        *{ margin: 0; padding: 0; font-family:Microsoft yahei,serif;}
+        li{ list-style:none;}
+        #wrap{
+            position: relative;
+            width: 300px;
+            height: 540px;
+            margin: 50px auto;
+        }
+        #init{
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 150px;
+            height: 170px;
+            margin: auto;
+        }
+        #init p{
+            width: 100%;
+            height: 30px;
+            border-radius: 5px;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            color: #fff;
+            background-color: #49bee2;
+            cursor: pointer;
+        }
+        #init p+ p{
+            margin-top: 40px;
+        }
+        #box{
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+        }
+        #box ul{
+            width: 100%;
+            height: 30px;
+        }
+        #box ul li{
+            float: left;
+            width: 30px;
+            height: 30px;
+            box-shadow: 1px 1px 6px rgba(0,0,0,.6);
+            background-color: #fff;
+        }
+        #box ul li.show{
+            background-color: #49bee2;
+        }
+        #wrap .grade{
+            display: none;
+            overflow: hidden;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100px;
+            height: 30px;
+            line-height: 30px;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: red;
+        }
+        #wrap .newstart{
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            margin: auto;
+            width: 180px;
+            height: 230px;
+            background-color: #000;
+            border-radius: 5px;
+        }
+        #wrap .newstart>p{
+            width: 100px;
+            height: 30px;
+            background-color: red;
+            color: #000;
+            line-height: 30px;
+            text-align: center;
+            margin: 30px auto;
+            border-radius: 5px;
+        }
+        #wrap .newstart>p.new{
+            height: 40px;
+            line-height: 40px;
+            width: 150px;
+            font-weight: bold;
+        }
+        #wrap .newstart>p.new-end{
+            font-size: 20px;
+            font-weight: bold;
+        }
+        #wrap .newstart>p.new-grade{
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+        }
+        #wrap .newstart .start{
+            cursor: pointer;
+        }
+        #wrap .operate{
+            position: absolute;
+            top: 0;
+            left: -65%;
+            color: #fff;
+        }
+        #wrap .operate>h1{
+            width: 100%;
+            text-align: center;
+            height: 30px;
+            line-height: 30px;
+            font-size: 18px;
+            font-weight: 400;
+            color: red;
+            background-color: #49bee2;
+            padding: 0 10px;
+            border-radius: 5px;
+        }
+        #wrap .operate>p{
+            width: 100%;
+            text-align: center;
+            height: 30px;
+            line-height: 30px;
+            margin-top: 5px;
+            background-color: #49bee2;
+            padding: 0 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="wrap">
+        <div id="init">
+            <p>简单模式</p>
+            <p>中级模式</p>
+            <p>疯狂模式</p>
+        </div>
+        <div class="grade">分数:0</div>
+        <div id="box"></div>
+        <div class="newstart">
+            <p class="new new-end">游戏结束</p>
+            <p class="new new-grade">得分:</p>
+            <p class="start">继续游戏</p>
+        </div>
+        <div class="operate">
+            <h1>操作</h1>
+            <p>上箭头: 旋转变换</p>
+            <p>下箭头：加速移动</p>
+            <p>左箭头: 向左移动</p>
+            <p>右箭头: 向右移动</p>
+        </div>
+    </div>
+    <script>
+        var obox = document.getElementById("box"),
+            oinit = document.getElementById("init"),
+            opp = document.querySelectorAll("#init p"),
+            grade = document.querySelector("#wrap .grade"),
+            newstart = document.querySelector(".newstart"),
+            newgrade = newstart.querySelector(".new-grade"),
+            newend = newstart.querySelector(".start"),
+            chuX = obox.offsetWidth/30,
+            chuY = obox.offsetHeight/30,
+            difficulty = [400,250,100],
+            fragment = document.createDocumentFragment(),
+            boxarr = [],
+            qustTime = null;
+
+        //初始化界面
+        for (var i = 0; i < chuY; i++) {
+            boxarr[i] = [];
+            var oul = document.createElement("ul");
+            oul.setAttribute("index",i+"");
+            for (var j = 0; j < chuX; j++) {
+                var oli = document.createElement("li");
+                oli.setAttribute("index",i+"+"+j);
+                oli.judge = false;
+                oul.appendChild(oli);
+                boxarr[i][j] = oli;
+            }
+            fragment.appendChild(oul);
+        }
+        obox.appendChild(fragment);
+        function Diamonds(obox,arr,otimer){
+            this.obox = obox;
+            this.arr = arr;
+            this.shapeArr = [];
+            this.timear = null;
+            this.time = otimer;
+            this.ograde = 0;
+        }
+        Diamonds.prototype = {
+            //游戏开始
+            init: function(){
+                this.execute();
+                this.operate();
+            },
+            //游戏结束
+            gameover: function(){
+                var time = new Date,muNum = this.ograde * 10,This = this;
+                newstart.style.display = "block";
+                grade.style.display = "none";
+                boxarr = null;
+                (function auto(){
+                    var porp = (new Date - time)/500;
+                    if(porp >= 1){
+                        newgrade.innerHTML = "得分:"+muNum;
+                        cancelAnimationFrame(qustTime);
+                    }else{
+                        qustTime = requestAnimationFrame(auto.bind(this));
+                    }
+                    newgrade.innerHTML = "得分:"+parseInt(muNum*porp)+"分";
+                }).bind(this)();
+                //清空之前有的数据
+                setTimeout(function(){
+                    This.arr.forEach(function(vaI){
+                        vaI.forEach(function(vaJ){
+                            vaJ.judge = false;
+                            vaJ.className = "";
+                        })
+                    });
+                    This.shapeArr.forEach(function(value){
+                        This.arr[value.x][value.y].className = "";
+                    });
+                    This.shapeArr = [];
+                    boxarr = This.arr;
+                });
+            },
+            execute:function(){
+                var This = this,obind;
+                clearInterval(this.timear);
+                this.shapeArr = this.shape();
+                this.shapeArr.forEach(function(value,index){
+                    var ox = value.x,oy = value.y;
+                    This.arr[oy][ox].className = "show";
+                });
+                //判断是否游戏结束
+                obind = this.shapeArr.every(function(value){
+                    return !(This.arr[value.y + 1][value.x].judge);
+                });
+                this.timear = setInterval(this.moveDisposi.bind(this,{y:1}),this.time);
+                if(!obind){
+                    clearInterval(this.timear);
+                    return this.gameover();
+                }
+            },
+            //添加键盘事件
+            operate: function(){
+                var This = this;
+                document.onkeydown = function(e){
+                    e = e || window.event;
+                    var keyjson = {
+                        "37": {x : -1},
+                        "39": {x : 1},
+                        "40": {y : 1},
+                        "38": true
+                    };
+                    if(e.keyCode === 38){
+                        This.switchhover.call(This);
+                    }else if(keyjson[e.keyCode]){
+                        This.moveDisposi.call(This,keyjson[e.keyCode]);
+                    }
+                }
+            },
+            //对于左右下移动时候限制
+            moveDisposi: function(move){
+                var This = this;
+                var oarr = this.shapeArr;
+                var ox = move.x || 0;
+                var oy = move.y || 0;
+                //对于左右移动的判断
+                var bool = oarr.every(function(value){
+                    return ((value.x + ox) >= 0 && (value.x + ox) <= 9) && !(This.arr[value.y][value.x + ox].judge);
+                });
+                //对于向下移动的判断
+                var boolTwo = oarr.every(function(value){
+                    return ((value.y + oy) < 18) && !(This.arr[(value.y + oy)][value.x].judge);
+                });
+                //已经不能再往下移动时执行的代码
+                if (!boolTwo){
+                    var oul = this.obox.getElementsByTagName("ul");
+                    var removeArr = [],arrJudeg = false;
+                    oarr.forEach(function(value){
+                        var acc = This.arr[value.y][value.x];
+                        acc.className = "show";
+                        acc.judge = true;
+                    });
+                    //判断有没有填满一行或者多行的
+                    this.arr.forEach(function(value,index){
+                        var bool = [].slice.call(oul[index].children).every(function(value){
+                            return value.judge;
+                        });
+                        if(bool){
+                            This.ograde++;
+                            grade.innerHTML = "分数:"+This.ograde*10;
+                            arrJudeg = true;
+                            removeArr.push(oul[index]);
+                        }
+                    });
+                    //有填满的执行，把已经选满为一行的，移动到最前面，并清除信息，并重新排列数组
+                    if(arrJudeg){
+                        var fragment = document.createDocumentFragment();
+                        clearInterval(this.timear);
+                        removeArr.forEach(function(value){
+                            [].slice.call(value.children).forEach(function(value){
+                                value.judge = false;
+                                value.className = "";
+                            });
+                            fragment.appendChild(value);
+                        });
+                        this.obox.insertBefore(fragment,this.obox.children[0]);
+                        this.arr = [];
+                        [].slice.call(this.obox.children).forEach(function(vaI,i){
+                            This.arr[i] = [];
+                            [].slice.call(vaI.children).forEach(function(vaJ,j){
+                                This.arr[i][j] = vaJ;
+                            })
+                        });
+                    }
+                    return this.execute();
+                }
+                if(!bool){
+                    return;
+                }
+                oarr.forEach(function(value){
+                    This.arr[value.y][value.x].className = "";
+                });
+                oarr.forEach(function(value){
+                    value.x += ox;
+                    value.y += oy;
+                });
+                oarr.forEach(function(value){
+                    This.arr[value.y][value.x].className = "show";
+                });
+            },
+            //按上箭头旋转切换
+            switchhover: function(){
+                var switchX = 0,switchY = 0,arc = [],This = this,
+                    oarr = this.shapeArr;
+                oarr.forEach(function(value){
+                    switchX += value.x;
+                    switchY += value.y;
+                });
+                switchX = Math.round(switchX/oarr.length);
+                switchY = Math.round(switchY/oarr.length);
+                oarr.forEach(function(value,index){
+                    arc[index] = {x: switchX + switchY - value.y,y: switchY - switchX + value.x};
+                });
+                //判断旋转以后是否会越界，或者是否会覆盖掉已有的方块，如果是的话，就不执行
+                var bool = arc.every(function(value){
+                    return value.x >= 0 && value.x <= 9 && value.y >= 0 && value.y <= 17 && !(This.arr[value.y][value.x].judge);
+                });
+                if(!bool)return;
+                oarr.forEach(function(value){
+                    This.arr[value.y][value.x].className = "";
+                });
+                arc.forEach(function(value,index){
+                    This.arr[value.y][value.x].className = "show";
+                    oarr[index] = {x: value.x,y: value.y};
+                })
+            },
+            //随机8种状态中的一种
+            shape: function(){
+                var oarr = [
+                    [   //横杠
+                        {x : 3,y : 0},{x : 4,y : 0},{x : 5,y : 0}, {x : 6,y : 0}
+                    ],
+                    [   //左弯钩
+                        {x : 3,y : 0},{x : 3,y : 1}, {x : 4,y : 1},{x : 5,y : 1}
+                    ],
+                    [   //大方块
+                        {x : 4,y : 0}, {x : 5,y : 0}, {x : 4,y : 1}, {x : 5,y : 1}
+                    ],
+                    [   //右弯钩
+                        {x : 3,y : 1}, {x : 4,y : 1}, {x : 5,y : 1}, {x : 5,y : 0}
+                    ],
+                    [   //左闪电
+                        {x : 4,y : 0}, {x : 4,y : 1}, {x : 5,y : 1}, {x : 5,y : 2}
+                    ],
+                    [   //右闪电
+                        {x : 4,y : 1}, {x : 4,y : 2}, {x : 5,y : 1}, {x : 5,y : 0}
+                    ],
+                    [   //三角
+                        {x : 3,y : 0}, {x : 4,y : 0}, {x : 4,y : 1}, {x : 5,y : 0}
+                    ],
+                    [   //点
+                        {x : 5,y : 0}
+                    ]
+                ];
+                return oarr[~~(Math.random()*oarr.length)];
+            }
+        };
+        //点击选择难度开始游戏
+        opp.forEach(function(value,index){
+            value.onclick = function(){
+                grade.style.display = "block";
+                oinit.style.display = "none";
+                new Diamonds(obox,boxarr,difficulty[index]).init();
+            }
+        });
+        //点击结束游戏的时候执行
+        newend.addEventListener("click",function(){
+            newstart.style.display = "none";
+            oinit.style.display = "block";
+            cancelAnimationFrame(qustTime);
+        })
+    </script>
+</body>
+</html>
